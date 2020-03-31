@@ -13,9 +13,15 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.gson.Gson;
+
 import org.w3c.dom.Text;
 
 import java.text.NumberFormat;
+import java.util.List;
+
+import au.edu.unsw.infs3634.cryptobag.Entities.Coin;
+import au.edu.unsw.infs3634.cryptobag.Entities.CoinLoreResponse;
 
 
 ///**
@@ -71,13 +77,22 @@ public class CoinFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+//        Gson gson = new Gson();
+//        CoinLoreResponse response = gson.fromJson(CoinLoreResponse.json, CoinLoreResponse.class);
+//        List<Coin> coins = response.getData();
+//        for(Coin coin : coins){
+//            if(coin.getId)
+//        }
 
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
+        Gson gson = new Gson();
+        CoinLoreResponse response = gson.fromJson(CoinLoreResponse.json, CoinLoreResponse.class);
+        List<Coin> coins = response.getData();
 
         View rootView = inflater.inflate(R.layout.coin_fragment, container, false);
         NumberFormat formatter = NumberFormat.getCurrencyInstance();
@@ -101,22 +116,24 @@ public class CoinFragment extends Fragment {
         }
         if(mTwoPane){
             System.out.println("THIS A DOUBLE PANE");
-            mCoin = Coin.getCoins().get(getArguments().getInt("position"));
+            mCoin = coins.get(getArguments().getInt("position"));
         } else {
             Intent intent = getActivity().getIntent();
             position = intent.getIntExtra(MainActivity.EXTRA_MESSAGE,0);
-            mCoin = Coin.getCoins().get(position);
+            mCoin = coins.get(position);
+            System.out.println(position);
+            System.out.println(mCoin.getPriceUsd());
         }
 
 
         mName.setText(mCoin.getName());
         mSymbol.setText(mCoin.getSymbol());
-        mValue.setText(formatter.format(mCoin.getValue()));
-        mChange1h.setText(String.valueOf(mCoin.getChange1h()) + " %");
-        mChange24h.setText(String.valueOf(mCoin.getChange24h()) + " %");
-        mChange7d.setText(String.valueOf(mCoin.getChange7d()) + " %");
-        mMarketcap.setText(formatter.format(mCoin.getMarketcap()));
-        mVolume.setText(formatter.format(mCoin.getVolume()));
+        mValue.setText(formatter.format(Double.valueOf(mCoin.getPriceUsd())));
+        mChange1h.setText(String.valueOf(mCoin.getPercentChange1h()) + " %");
+        mChange24h.setText(String.valueOf(mCoin.getPercentChange24h()) + " %");
+        mChange7d.setText(String.valueOf(mCoin.getPercentChange7d()) + " %");
+        mMarketcap.setText(formatter.format(Double.valueOf(mCoin.getMarketCapUsd())));
+        mVolume.setText(formatter.format(Double.valueOf(mCoin.getVolume24())));
         mSearch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

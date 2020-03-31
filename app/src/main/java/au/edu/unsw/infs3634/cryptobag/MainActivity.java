@@ -10,6 +10,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import com.google.gson.Gson;
+import java.util.List;
+
+import au.edu.unsw.infs3634.cryptobag.Entities.Coin;
+import au.edu.unsw.infs3634.cryptobag.Entities.CoinLoreResponse;
 
 public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_MESSAGE = "au.edu.unsw.infs3634.beers.MESSAGE";
@@ -17,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
+    private List<Coin> mCoins;
     private boolean mTwoPane;
 
     @Override
@@ -29,9 +35,7 @@ public class MainActivity extends AppCompatActivity {
         mRecyclerView.setHasFixedSize(true);
 
         mLayoutManager = new LinearLayoutManager(this);
-
         mRecyclerView.setLayoutManager(mLayoutManager);
-
         mTwoPane = findViewById(R.id.scrollView1) != null;
 
         CoinAdapter.RecyclerViewClickListener listener = new CoinAdapter.RecyclerViewClickListener() {
@@ -57,7 +61,11 @@ public class MainActivity extends AppCompatActivity {
 
             }
         };
-        mAdapter = new CoinAdapter(Coin.getCoins(), listener);
+
+        Gson gson = new Gson();
+        CoinLoreResponse response = gson.fromJson(CoinLoreResponse.json, CoinLoreResponse.class);
+        List<Coin> coins = response.getData();
+        mAdapter = new CoinAdapter(coins, listener);
         mRecyclerView.setAdapter(mAdapter);
     }
 

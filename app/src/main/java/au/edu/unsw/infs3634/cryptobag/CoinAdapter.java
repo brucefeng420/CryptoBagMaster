@@ -12,12 +12,15 @@ import org.w3c.dom.ls.LSOutput;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.List;
+
+import au.edu.unsw.infs3634.cryptobag.Entities.Coin;
 
 public class CoinAdapter extends RecyclerView.Adapter<CoinAdapter.CoinViewHolder> {
-    private ArrayList<Coin> mCoins;
+    private List<Coin> mCoins;
     private RecyclerViewClickListener mListener;
 
-    public CoinAdapter(ArrayList<Coin> coins, RecyclerViewClickListener listener) {
+    public CoinAdapter(List<Coin> coins, RecyclerViewClickListener listener) {
         mCoins = coins;
         mListener = listener;
     }
@@ -60,8 +63,8 @@ public class CoinAdapter extends RecyclerView.Adapter<CoinAdapter.CoinViewHolder
     public void onBindViewHolder(CoinViewHolder holder, int position) {
         Coin coin = mCoins.get(position);
         holder.name.setText(coin.getName());
-        holder.value.setText(NumberFormat.getCurrencyInstance().format(coin.getValue()));
-        holder.change.setText(String.valueOf(coin.getChange1h()) + " %");
+        holder.value.setText(NumberFormat.getCurrencyInstance().format(Double.valueOf(coin.getPriceUsd())));
+        holder.change.setText(coin.getPercentChange24h() + " %");
 
     }
 
