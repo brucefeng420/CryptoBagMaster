@@ -7,6 +7,7 @@ import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,11 +18,17 @@ import com.google.gson.Gson;
 
 import org.w3c.dom.Text;
 
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.List;
 
 import au.edu.unsw.infs3634.cryptobag.Entities.Coin;
 import au.edu.unsw.infs3634.cryptobag.Entities.CoinLoreResponse;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 
 ///**
@@ -35,6 +42,7 @@ import au.edu.unsw.infs3634.cryptobag.Entities.CoinLoreResponse;
 
 public class CoinFragment extends Fragment {
     private Coin mCoin;
+    private String TAG = "CoinFragment";
 
 
 
@@ -77,12 +85,6 @@ public class CoinFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        Gson gson = new Gson();
-//        CoinLoreResponse response = gson.fromJson(CoinLoreResponse.json, CoinLoreResponse.class);
-//        List<Coin> coins = response.getData();
-//        for(Coin coin : coins){
-//            if(coin.getId)
-//        }
 
     }
 
@@ -90,15 +92,57 @@ public class CoinFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        Gson gson = new Gson();
-        CoinLoreResponse response = gson.fromJson(CoinLoreResponse.json, CoinLoreResponse.class);
-        List<Coin> coins = response.getData();
+            //create Retrofit & parse retreived JSON using GSON deserialiser
+            Retrofit retrofit = new Retrofit.Builder().baseUrl("https://api.coinlore.net").addConverterFactory(GsonConverterFactory.create()).build();
+
+            //get service & call object for the request
+            CoinService service = retrofit.create(CoinService.class);
+            Call<CoinLoreResponse> coinsCall = service.getCoins();
+
+            //execute the network request
+        coinsCall.enqueue(new Callback<CoinLoreResponse>() {
+            @Override
+            public void onResponse(Call<CoinLoreResponse> call, Response<CoinLoreResponse> response) {
+                Log.d(TAG, "onResponse: SUCCESS");
+                List<Coin> coins = response.body().getData();
+
+                int position = 0;
+                Boolean mTwoPane = false;
+
+                if(CoinFragment.this.getArguments() != null){
+                    mTwoPane = true;
+                }
+                if(mTwoPane){
+                    System.out.println("THIS A DOUBLE PANE");
+                    mCoin = coins.get(getArguments().getInt("position"));
+                } else {
+                    Intent intent = getActivity().getIntent();
+                    position = intent.getIntExtra(MainActivity.EXTRA_MESSAGE,0);
+                    mCoin = coins.get(position);
+                    System.out.println(position);
+                    System.out.println(mCoin.getPriceUsd());
+                }
+                updateUI();
+            }
+
+            @Override
+            public void onFailure(Call<CoinLoreResponse> call, Throwable t) {
+                Log.d(TAG, "onFailure: FAILURE");
+            }
+        });
 
         View rootView = inflater.inflate(R.layout.coin_fragment, container, false);
-        NumberFormat formatter = NumberFormat.getCurrencyInstance();
+        return rootView;
+    }
 
-        int position = 0;
-        Boolean mTwoPane = false;
+    private void searchCoin(String name) {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + name));
+        startActivity(intent);
+    }
+
+    private void updateUI(){
+        View rootView = getView();
+        NumberFormat formatter = NumberFormat.getCurrencyInstance();
 
         TextView mName = rootView.findViewById(R.id.titleValue);
         TextView mSymbol = rootView.findViewById(R.id.tvCoinSymbol);
@@ -110,22 +154,6 @@ public class CoinFragment extends Fragment {
         TextView mVolume = rootView.findViewById(R.id.tvVolumeValue);
         ImageView mSearch = rootView.findViewById(R.id.ivSearch);
 
-
-        if(this.getArguments() != null){
-            mTwoPane = true;
-        }
-        if(mTwoPane){
-            System.out.println("THIS A DOUBLE PANE");
-            mCoin = coins.get(getArguments().getInt("position"));
-        } else {
-            Intent intent = getActivity().getIntent();
-            position = intent.getIntExtra(MainActivity.EXTRA_MESSAGE,0);
-            mCoin = coins.get(position);
-            System.out.println(position);
-            System.out.println(mCoin.getPriceUsd());
-        }
-
-
         mName.setText(mCoin.getName());
         mSymbol.setText(mCoin.getSymbol());
         mValue.setText(formatter.format(Double.valueOf(mCoin.getPriceUsd())));
@@ -134,6 +162,7 @@ public class CoinFragment extends Fragment {
         mChange7d.setText(String.valueOf(mCoin.getPercentChange7d()) + " %");
         mMarketcap.setText(formatter.format(Double.valueOf(mCoin.getMarketCapUsd())));
         mVolume.setText(formatter.format(Double.valueOf(mCoin.getVolume24())));
+
         mSearch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -141,16 +170,7 @@ public class CoinFragment extends Fragment {
             }
         });
 
-
-        // Inflate the layout for this fragment
-        return rootView;
     }
-
-    private void searchCoin(String name) {
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + name));
-        startActivity(intent);
-    }
-
 
 //    // TODO: Rename method, update argument and hook method into UI event
 //    public void onButtonPressed(Uri uri) {
