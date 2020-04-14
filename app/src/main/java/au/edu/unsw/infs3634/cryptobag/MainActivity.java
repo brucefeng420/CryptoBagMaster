@@ -8,9 +8,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+
 import com.google.gson.Gson;
 
 import java.io.IOException;
@@ -54,12 +56,12 @@ public class MainActivity extends AppCompatActivity {
 
                 System.out.println(position);
 
-                if(mTwoPane){
+                if (mTwoPane) {
                     System.out.println("TWO PANE DETECTEDDD");
                     final FragmentManager fragmentManager = getSupportFragmentManager();
                     FragmentTransaction transaction = fragmentManager.beginTransaction();
                     Bundle arguements = new Bundle();
-                    arguements.putInt("position",position);
+                    arguements.putInt("position", position);
                     CoinFragment fragment = new CoinFragment();
                     fragment.setArguments(arguements);
                     transaction.replace(R.id.scrollView1, fragment);
@@ -75,35 +77,42 @@ public class MainActivity extends AppCompatActivity {
         mAdapter = new CoinAdapter(new ArrayList<Coin>(), listener);
         mRecyclerView.setAdapter(mAdapter);
 
-            //create Retrofit & parse retreived JSON using GSON deserialiser
-            Retrofit retrofit = new Retrofit.Builder().baseUrl("https://api.coinlore.net/").addConverterFactory(GsonConverterFactory.create()).build();
+        new GetCoinTask().execute();
 
-            //get service & call object for the request
-            CoinService service = retrofit.create(CoinService.class);
-            Call<CoinLoreResponse> coinsCall = service.getCoins();
 
-            //execute the network request
+    }
 
-            coinsCall.enqueue(new Callback<CoinLoreResponse>() {
-                @Override
-                public void onResponse(Call<CoinLoreResponse> call, Response<CoinLoreResponse> response) {
-                    Log.d(TAG, "onResponse: SUCCESS");
-                    List<Coin> coins = response.body().getData();
-                    mAdapter.setCoins(coins);
-                }
+    private class GetCoinTask extends AsyncTask<Void, Void, List<Coin>> {
+        @Override
+        protected List<Coin> doInBackground(Void... voids) {
+            try {
+                Log.d(TAG, "doInBackground: SUCCESS");
+                Retrofit retrofit = new Retrofit.Builder().baseUrl("https://api.coinlore.net/").addConverterFactory(GsonConverterFactory.create()).build();
 
-                @Override
-                public void onFailure(Call<CoinLoreResponse> call, Throwable t) {
-                    Log.d(TAG, "onFailure: FAILURE" + t.getLocalizedMessage());
-                }
-            });
+                CoinService service = retrofit.create(CoinService.class);
+                Call<CoinLoreResponse> coinsCall = service.getCoins();
 
+                Response<CoinLoreResponse> coinResponse = coinsCall.execute();
+                List<Coin> coins = coinResponse.body().getData();
+                return coins;
+
+            } catch (IOException e) {
+                Log.d(TAG, "onFailure: FAILURE");
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(List<Coin> coins) {
+            mAdapter.setCoins(coins);
+        }
 
     }
 
     private void launchDetailFragment(int position) {
 
-        Intent intent = new Intent (this, DetailActivity.class);
+        Intent intent = new Intent(this, DetailActivity.class);
         intent.putExtra(EXTRA_MESSAGE, position);
         startActivity(intent);
 

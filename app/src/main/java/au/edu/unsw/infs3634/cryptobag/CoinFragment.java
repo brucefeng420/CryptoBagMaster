@@ -3,6 +3,7 @@ package au.edu.unsw.infs3634.cryptobag;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -45,7 +46,6 @@ public class CoinFragment extends Fragment {
     private String TAG = "CoinFragment";
 
 
-
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
@@ -61,7 +61,6 @@ public class CoinFragment extends Fragment {
     public CoinFragment() {
         // Required empty public constructor
     }
-
 
 
     /**
@@ -92,55 +91,63 @@ public class CoinFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-            //create Retrofit & parse retreived JSON using GSON deserialiser
-            Retrofit retrofit = new Retrofit.Builder().baseUrl("https://api.coinlore.net").addConverterFactory(GsonConverterFactory.create()).build();
-
-            //get service & call object for the request
-            CoinService service = retrofit.create(CoinService.class);
-            Call<CoinLoreResponse> coinsCall = service.getCoins();
-
-            //execute the network request
-        coinsCall.enqueue(new Callback<CoinLoreResponse>() {
-            @Override
-            public void onResponse(Call<CoinLoreResponse> call, Response<CoinLoreResponse> response) {
-                Log.d(TAG, "onResponse: SUCCESS");
-                List<Coin> coins = response.body().getData();
-
-                int position = 0;
-                Boolean mTwoPane = false;
-
-                if(CoinFragment.this.getArguments() != null){
-                    mTwoPane = true;
-                }
-                if(mTwoPane){
-                    System.out.println("THIS A DOUBLE PANE");
-                    mCoin = coins.get(getArguments().getInt("position"));
-                } else {
-                    Intent intent = getActivity().getIntent();
-                    position = intent.getIntExtra(MainActivity.EXTRA_MESSAGE,0);
-                    mCoin = coins.get(position);
-                    System.out.println(position);
-                    System.out.println(mCoin.getPriceUsd());
-                }
-                updateUI();
-            }
-
-            @Override
-            public void onFailure(Call<CoinLoreResponse> call, Throwable t) {
-                Log.d(TAG, "onFailure: FAILURE");
-            }
-        });
+        new GetCoinTask().execute();
 
         View rootView = inflater.inflate(R.layout.coin_fragment, container, false);
         return rootView;
     }
+
+    private class GetCoinTask extends AsyncTask<Void, Void, List<Coin>> {
+        @Override
+        protected List<Coin> doInBackground(Void... voids) {
+            try {
+                Log.d(TAG, "doInBackground: SUCCESS");
+                Retrofit retrofit = new Retrofit.Builder().baseUrl("https://api.coinlore.net/").addConverterFactory(GsonConverterFactory.create()).build();
+
+                //get service & call object for the request
+                CoinService service = retrofit.create(CoinService.class);
+                Call<CoinLoreResponse> coinsCall = service.getCoins();
+
+                Response<CoinLoreResponse> coinResponse = coinsCall.execute();
+                List<Coin> coins = coinResponse.body().getData();
+                return coins;
+
+            } catch (IOException e) {
+                Log.d(TAG, "onFailure: FAILURE");
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(List<Coin> coins) {
+            int position = 0;
+            Boolean mTwoPane = false;
+
+            if (CoinFragment.this.getArguments() != null) {
+                mTwoPane = true;
+            }
+            if (mTwoPane) {
+                System.out.println("THIS A DOUBLE PANE");
+                mCoin = coins.get(getArguments().getInt("position"));
+            } else {
+                Intent intent = getActivity().getIntent();
+                position = intent.getIntExtra(MainActivity.EXTRA_MESSAGE, 0);
+                mCoin = coins.get(position);
+                System.out.println(position);
+                System.out.println(mCoin.getPriceUsd());
+            }
+            updateUI();
+        }
+    }
+
 
     private void searchCoin(String name) {
         Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + name));
         startActivity(intent);
     }
 
-    private void updateUI(){
+    private void updateUI() {
         View rootView = getView();
         NumberFormat formatter = NumberFormat.getCurrencyInstance();
 
